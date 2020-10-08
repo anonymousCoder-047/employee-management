@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/headers') %>
+    <title>Home</title>
+</head>
+<body>
+    <div>
+        <h3 style="text-align: center;text-transform: uppercase; padding: 30px;margin-bottom: 35px;">Employee Attendance</h3>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <table class="striped alternate-row">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Account No</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Salary</th>
+                        <th scope="col">Incentive</th>
+                        <th scope="col">Gr Amount</th>
+                        <th scope="col">Tax Amount</th>
+                        <th scope="col">Absent</th>
+                        <th scope="col">Gr Value</th>
+                        <th scope="col">Advance</th>
+                        <th scope="col">Gr Total</th>
+                        <th scope="col">CASH / PF</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(var i=0;i<emp.length; i++) { %>
+                        <tr>
+                            <th scope="row"><%= i+1 %></th>
+                            <td><%= emp[i].emp_acct %></td>
+                            <td id="emp_name"><%= emp[i].emp_name %></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="basic_salary"><%= emp[i].emp_salary %></span></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="incentive"><%= emp[i].emp_incentive %></span></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="gr_amount"><%= emp[i].emp_gr_amt %></span></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="tax_amt"><%= emp[i].emp_tax_amt %></span></td>
+                            <td><input type="number" id="leaves" min="0" step="0.1" oninput="validity.valid||(value='');"></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="gr_value"><%= emp[i].emp_gr_amt %></span></td>
+                            <td><input type="number" id="advance" min="0" onchange="calAdvance()" oninput="validity.valid||(value='');"></td>
+                            <td><i class="fa fa-inr" aria-hidden="true"></i> <span id="gr_total"><%= emp[i].emp_gr_total %></span></td>
+                            <td><span id="pay_method"><%= emp[i].emp_pay_method %></span></td>
+                            <td><a class="waves-effect waves-light btn modal-trigger blue" onclick="document.getElementById('emp_salary_calc').value = parseFloat(document.getElementById('basic_salary').innerHTML)" href="#modal1">view</a> 
+                                <span class="btn waves-effect waves-light blue" style="cursor: pointer;" onclick="update()" id="sal_update">update</span>
+                            </td>
+                        </tr> 
+                    <% } %>
+                </tbody>
+            </table>
+            <div id="modal1" class="modal">
+                <div class="modal-content">
+                  <h4>Calculate Salary</h4>
+                  <div class="row">
+                      <div class="col s1"></div>
+                      <div class="col s4">
+                        <div class="input-field col s6">
+                            <input id="emp_tax" onchange="taxChanged()" type="number" value="0" step="0.01" class="validate">
+                            <label for="emp_tax_l">Tax %</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input id="emp_pf" onchange="pfChanged()" type="number" value="12.5" step="0.01" class="validate">
+                            <label for="emp_pf_l">PF %</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input id="emp_esi" onchange="esiChanged()" type="number" value="0" step="0.01" class="validate">
+                            <label for="emp_esi_l">ESI %</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <i class="fa fa-inr"></i> <input style="width: 80%;" id="emp_ttl_salary" type="number" value="0" step="0.01" class="validate">
+                            <label for="emp_ttl_salary">Total Tax</label>
+                        </div>
+                      </div>
+                      <div class="col s4">
+                        <div class="input-field col s6">
+                            <i class="fa fa-inr"></i> <input style="width: 80%;" id="emp_salary_calc" type="number" value='0' step="0.01" class="validate">
+                            <label for="emp_sal">Salary</label>
+                        </div><br>
+                      </div>
+                      <div class="col s1"></div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <a href="#!" class="waves-effect waves-green btn-flat" id="calc_btn" onclick="calculate()">Calculate</a>
+                  <a href="#!" class="modal-close waves-effect waves-green btn-flat" id="calc_done" onclick="calcDone()">Done</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var elems = document.querySelectorAll('.modal');
+            var instances = M.Modal.init(elems);
+        });
+
+        const original_salary = parseFloat(document.getElementById('basic_salary').innerHTML);
+
+        function update() {
+            let validate = document.getElementById('leaves').value;
+            let pay_method = document.getElementById('pay_method').innerHTML;
+            if ( validate === "" ) {
+                M.toast({html: 'please enter the no of leaves!'});
+            } else {
+                // CASH calculation 
+                
+                if( pay_method === "CASH" ) {
+                    let ttl_days = 30;
+                    let salary = parseFloat(document.getElementById('basic_salary').innerHTML);
+                    let leaves = parseFloat(document.getElementById('leaves').value);
+                    // let tax = parseFloat(document.getElementById('emp_tax').value);
+                    // let pf = parseFloat(document.getElementById('emp_pf').value);
+                    // let esi = parseFloat(document.getElementById('emp_esi').value);
+                    
+                    if( leaves >=1 ) {
+                        // tax_amt = Tax(salary,tax);
+                        // pf_amt = Pf(salary,pf);
+                        // esi_amt = Esi(salary,esi);
+                        net_salary = Calc_salary(salary);
+                        // ttl_deduction = parseInt(tax_amt + pf_amt + esi_amt); 
+                        ttl_days = ttl_days - leaves;
+                        net_salary = Math.round(net_salary*ttl_days);
+                        
+                        document.getElementById('gr_value').innerHTML = net_salary;
+                        document.getElementById('gr_total').innerHTML = net_salary;
+                        // document.getElementById('tax_calculate').innerHTML = tax+"*"+salary+"/100 = "+tax_amt;
+                        // document.getElementById('pf_calculate').innerHTML = pf+"*"+salary+"/100 = "+pf_amt;
+                        // document.getElementById('esi_calculate').innerHTML = esi+"*"+salary+"/100 = "+esi_amt;
+
+                        M.toast({html: 'calculated successfully'});
+                    } else {
+                        // tax_amt = Tax(salary,tax);
+                        // pf_amt = Pf(salary,pf);
+                        // esi_amt = Esi(salary,esi);
+                        net_salary = Calc_salary(salary);
+                        // ttl_deduction = parseInt(tax_amt + pf_amt + esi_amt); 
+                        net_salary = Math.round(net_salary*ttl_days);
+
+                        document.getElementById('gr_value').innerHTML = net_salary;
+                        document.getElementById('gr_total').innerHTML = net_salary;
+                        // document.getElementById('tax_calculate').innerHTML = tax+"*"+salary+"/100 = "+tax_amt;
+                        // document.getElementById('pf_calculate').innerHTML = pf+"*"+salary+"/100 = "+pf_amt;
+                        // document.getElementById('esi_calculate').innerHTML = esi+"*"+salary+"/100 = "+esi_amt;
+
+                        M.toast({html: 'calculated successfully'});
+                    }
+                } else {
+                    // PF Calculation 
+
+                    let ttl_days = 30;
+                    let salary = parseFloat(document.getElementById('basic_salary').innerHTML);
+                    let leaves = parseInt(document.getElementById('leaves').value);
+                    let tax = parseFloat(document.getElementById('emp_tax').value);
+                    let pf = parseFloat(document.getElementById('emp_pf').value);
+                    let esi = parseFloat(document.getElementById('emp_esi').value);
+                    
+                    if( leaves >=1 ) {
+                        tax_amt = Tax(salary,tax);
+                        pf_amt = Pf(salary,pf);
+                        esi_amt = Esi(salary,esi);
+                        net_salary = Calc_salary(salary);
+                        ttl_deduction = parseInt(tax_amt + pf_amt + esi_amt); 
+                        ttl_days = ttl_days - leaves;
+                        net_salary = Math.round(((net_salary*ttl_days) - ttl_deduction));
+                        
+                        document.getElementById('gr_value').innerHTML = net_salary;
+                        document.getElementById('gr_total').innerHTML = net_salary;
+                        // document.getElementById('tax_calculate').innerHTML = tax+"*"+salary+"/100 = "+tax_amt;
+                        // document.getElementById('pf_calculate').innerHTML = pf+"*"+salary+"/100 = "+pf_amt;
+                        // document.getElementById('esi_calculate').innerHTML = esi+"*"+salary+"/100 = "+esi_amt;
+
+                        M.toast({html: 'calculated successfully'});
+                    } else {
+                        tax_amt = Tax(salary,tax);
+                        pf_amt = Pf(salary,pf);
+                        esi_amt = Esi(salary,esi);
+                        net_salary = Calc_salary(salary);
+                        ttl_deduction = parseInt(tax_amt + pf_amt + esi_amt); 
+                        net_salary = Math.round(((net_salary*ttl_days) - ttl_deduction));
+
+                        document.getElementById('gr_value').innerHTML = net_salary;
+                        document.getElementById('gr_total').innerHTML = net_salary;
+                        // document.getElementById('tax_calculate').innerHTML = tax+"*"+salary+"/100 = "+tax_amt;
+                        // document.getElementById('pf_calculate').innerHTML = pf+"*"+salary+"/100 = "+pf_amt;
+                        // document.getElementById('esi_calculate').innerHTML = esi+"*"+salary+"/100 = "+esi_amt;
+
+                        M.toast({html: 'calculated successfully'});
+                    }
+                }
+
+                document.getElementById('leaves').disabled = true;
+            }
+            return net_salary;
+        }
+
+        function calculate() {
+            let pay_method = document.getElementById('pay_method').innerHTML;
+
+            if(pay_method === "CASH") {
+                // CASH calculation 
+
+                let salary = parseFloat(document.getElementById('emp_salary_calc').value);
+                let tax = parseFloat(document.getElementById('emp_tax').value);
+                let pf = parseFloat(document.getElementById('emp_pf').value);
+                let esi = parseFloat(document.getElementById('emp_esi').value);
+                let tax_cal = Tax(salary, tax);
+                let pf_cal = Pf(salary, pf);
+                let esi_cal = Esi(salary, esi);
+                let tax_calc_salary = tax_cal+pf_cal+esi_cal;
+                document.getElementById('emp_ttl_salary').value = tax_calc_salary;
+                document.getElementById('calc_btn').classList.add('disabled');
+                document.getElementById('incentive').innerHTML = ((original_salary/30)*2);
+
+                M.toast({html: 'calculated successfully'});
+
+                return tax_calc_salary
+            } else {
+                // PF calculation
+    
+                let salary = parseFloat(document.getElementById('emp_salary_calc').value);
+                let tax = parseFloat(document.getElementById('emp_tax').value);
+                let pf = parseFloat(document.getElementById('emp_pf').value);
+                let esi = parseFloat(document.getElementById('emp_esi').value);
+                let tax_cal = Tax(salary, tax);
+                let pf_cal = Pf(salary, pf);
+                let esi_cal = Esi(salary, esi);
+                let tax_calc_salary = tax_cal+pf_cal+esi_cal;
+                document.getElementById('emp_ttl_salary').value = tax_calc_salary;
+                document.getElementById('calc_btn').classList.add('disabled');
+                document.getElementById('incentive').innerHTML = ((original_salary/30)*2);
+
+                M.toast({html: 'calculated successfully'});
+
+                return tax_calc_salary
+            }
+
+        }
+
+        function calIncentive() {
+            let basic_salary = parseFloat(document.getElementById('basic_salary').innerHTML);
+            let incentive = parseFloat(document.getElementById('incentive').innerHTML);
+            document.getElementById('gr_amount').innerHTML = (basic_salary+incentive);
+            M.toast({html: 'calculated successfully'});
+        }
+
+        function calcDone() {
+            let salary = calculate();
+            document.getElementById('tax_amt').innerHTML = salary;
+            calIncentive();
+        }
+
+        function Calc_salary(salary) {
+            return salary = ((salary/30)*32)/30
+        }
+
+        function Tax(salary,tax) {
+            if ( tax === 0) {
+                return 0
+            } else {
+                tax_amount = (salary*tax)/100;
+            }
+
+            return tax_amount
+        }
+
+        function Pf(salary,pf) {
+            if ( pf === 0 ) {
+                return 0
+            } else {
+                pf_amount = (salary*pf)/100;
+            }
+
+            return pf_amount
+        }
+
+        function Esi(salary,esi) {
+            if ( esi === 0 ) {
+                return 0
+            } else {
+                esi_amount = (salary*esi)/100;
+            }
+
+            return esi_amount
+        }
+
+        function calAdvance() {
+            let user = document.getElementById('emp_name').innerHTML;
+            let basic_salary = parseFloat(document.getElementById('gr_total').innerHTML);
+            let incentive = document.getElementById('incentive').innerHTML;
+            let gr_amt = document.getElementById('gr_amount').innerHTML;
+            let tax_amt = document.getElementById('tax_amt').innerHTML;
+            let gr_value = document.getElementById('gr_value').innerHTML;
+            let advance = parseFloat(document.getElementById('advance').value);
+            let leaves = parseFloat(document.getElementById('leaves').value);
+            let final_salary = parseFloat(basic_salary-advance);
+            document.getElementById('gr_total').innerHTML = final_salary;
+            
+            $.post('/update_salary', { 
+                name: user, 
+                salary: final_salary,
+                incentive: incentive,
+                gr_amt: gr_amt,
+                tax_amt: tax_amt,
+                leaves: leaves,
+                gr_value: gr_value,
+                advance: advance,
+                gr_total: final_salary 
+            });
+        }
+
+        function calChanged() {
+            document.getElementById('calc_btn').classList.remove('disabled');
+            document.getElementById('emp_salary_calc').value = original_salary;
+        }
+
+        function insChanged() {
+            document.getElementById('incentive').disabled = false;
+            document.getElementById('gr_amount').innerHTML = 0;
+        }
+
+        function taxChanged() {
+            document.getElementById('leaves').disabled = false;
+            document.getElementById('basic_salary').innerHTML = original_salary;
+        }
+
+        function pfChanged() {
+            document.getElementById('leaves').disabled = false;
+            document.getElementById('basic_salary').innerHTML = original_salary;
+        }
+
+        function esiChanged() {
+            document.getElementById('leaves').disabled = false;
+            document.getElementById('basic_salary').innerHTML = original_salary;
+        }
+
+        function advanceChanged() {
+            document.getElementById('leaves').disabled = false;
+            advance_calculate()
+        }
+    </script>
+</body>
+</html>
